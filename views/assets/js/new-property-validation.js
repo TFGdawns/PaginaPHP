@@ -99,18 +99,36 @@ function checkStepFields(stepNumber) {
   if (stepNumber === 1 && allValid && nextBtn) {
     nextBtn.disabled = true;
     validateAddressReal(1).then(result => {
-        if (!result.isReal) {
+        if (result.apiFound) {
+            // Solo marca en rojo los campos que no coinciden con la dirección encontrada
+            if (!result.streetMatch) {
+                setFieldInvalid(document.getElementById('street'), "Introduce una calle real y existente.");
+            } else {
+                setFieldValid(document.getElementById('street'));
+            }
+            if (!result.cityMatch) {
+                setFieldInvalid(document.getElementById('city'), "Introduce una ciudad real y existente.");
+            } else {
+                setFieldValid(document.getElementById('city'));
+            }
+            if (!result.provinceMatch) {
+                setFieldInvalid(document.getElementById('province'), "Introduce una provincia real y existente.");
+            } else {
+                setFieldValid(document.getElementById('province'));
+            }
+            if (!result.countryMatch) {
+                setFieldInvalid(document.getElementById('country'), "Introduce un país real y existente.");
+            } else {
+                setFieldValid(document.getElementById('country'));
+            }
+            nextBtn.disabled = !(result.streetMatch && result.cityMatch && result.provinceMatch && result.countryMatch);
+        } else {
+            // Si la API no encuentra nada, muestra error en todos
             setFieldInvalid(document.getElementById('street'), "Introduce una dirección real y existente.");
             setFieldInvalid(document.getElementById('city'), "");
             setFieldInvalid(document.getElementById('province'), "");
             setFieldInvalid(document.getElementById('country'), "");
             nextBtn.disabled = true;
-        } else {
-            setFieldValid(document.getElementById('street'));
-            setFieldValid(document.getElementById('city'));
-            setFieldValid(document.getElementById('province'));
-            setFieldValid(document.getElementById('country'));
-            nextBtn.disabled = false;
         }
     });
   }
@@ -150,7 +168,7 @@ window.loadFieldsForType = function (type) {
  * Devuelve un objeto { isReal: true/false }.
  */
 async function validateAddressReal(stepNumber) {
-    if (stepNumber !== 1) return { isReal: true };
+    if (stepNumber !== 1) return { apiFound: true, streetMatch: true, cityMatch: true, provinceMatch: true, countryMatch: true };
 
     const street = document.getElementById('street').value.trim();
     const city = document.getElementById('city').value.trim();
@@ -158,7 +176,7 @@ async function validateAddressReal(stepNumber) {
     const country = document.getElementById('country').value.trim();
 
     if (!street || !city || !province || !country) {
-        return { isReal: false };
+        return { apiFound: false, streetMatch: false, cityMatch: false, provinceMatch: false, countryMatch: false };
     }
 
     const query = encodeURIComponent(`${street}, ${city}, ${province}, ${country}`);
@@ -168,7 +186,7 @@ async function validateAddressReal(stepNumber) {
         const response = await fetch(url, { headers: { 'Accept-Language': 'es' } });
         const data = await response.json();
         if (data.length === 0) {
-            return { isReal: false };
+            return { apiFound: false, streetMatch: false, cityMatch: false, provinceMatch: false, countryMatch: false };
         }
 
         const address = data[0].address;
@@ -177,9 +195,16 @@ async function validateAddressReal(stepNumber) {
             return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
         }
 
+        const inputStreet = normalize(street);
         const inputCity = normalize(city);
         const inputProvince = normalize(province);
         const inputCountry = normalize(country);
+
+        // Comprobación de calle (en road, pedestrian, etc.)
+        const streetMatch =
+            [address.road, address.pedestrian, address.cycleway, address.footway, address.street, address.residential]
+                .filter(Boolean)
+                .some(val => normalize(val).includes(inputStreet));
 
         const cityMatch =
             [address.city, address.town, address.village, address.hamlet]
@@ -193,10 +218,10 @@ async function validateAddressReal(stepNumber) {
 
         const countryMatch = address.country && normalize(address.country).includes(inputCountry);
 
-        const isReal = cityMatch && provinceMatch && countryMatch;
+        const isReal = streetMatch && cityMatch && provinceMatch && countryMatch;
 
-        return { isReal };
+        return { apiFound: true, streetMatch, cityMatch, provinceMatch, countryMatch };
     } catch (e) {
-        return { isReal: false };
+        return { apiFound: false, streetMatch: false, cityMatch: false, provinceMatch: false, countryMatch: false };
     }
 }

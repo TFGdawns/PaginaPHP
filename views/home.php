@@ -213,7 +213,7 @@ $advertsToShow = array_slice($adverts, $start, $advertsPerPage);
             }, 'google_translate_element');
         }
 
-        // Botón personalizado simple y moderno
+        
         document.addEventListener('DOMContentLoaded', function() {
             var btnDiv = document.getElementById('google_translate_custom_btn');
             if (btnDiv) {

@@ -136,16 +136,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+/*
+
 // Redirección y reinicio del loader al hacer clic en el logo
 var logo = document.querySelector('.logo');
 if (logo) {
     logo.style.cursor = 'pointer';
     logo.addEventListener('click', function(e) {
         e.preventDefault();
-        sessionStorage.removeItem('houspecialLoaded');
+        localStorage.removeItem('houspecialLoaded'); 
         window.location.href = '/';
     });
 }
-
+*/
 
 
